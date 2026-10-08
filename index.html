@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>doces if</title>
+<style>
+:root{--p:#d6336c;--p2:#fff0f6;--c:#5b3a29;--bg:#fffaf5;--ok:#2b9348;--r:16px}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--c)}
+nav{position:sticky;top:0;z-index:5;background:#fff;box-shadow:0 2px 12px #0001;display:flex;align-items:center;padding:10px 16px;gap:8px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:1.4rem;color:var(--p);margin-right:auto;cursor:pointer}
+nav a{color:var(--c);text-decoration:none;padding:6px 10px;border-radius:99px;font-size:.92rem;cursor:pointer}nav a:hover,nav a.on{background:var(--p2);color:var(--p)}
+#menu{display:none;background:none;border:0;font-size:1.6rem}
+@media(max-width:820px){#menu{display:block}#links{display:none;width:100%;flex-direction:column}#links.open{display:flex}}
+#links{display:flex;gap:4px;flex-wrap:wrap}
+main{max-width:1050px;margin:0 auto;padding:18px;animation:f .3s}@keyframes f{from{opacity:0;transform:translateY(6px)}}
+.hero{background:linear-gradient(135deg,#ffa8c5,#ffd8a8);border-radius:24px;padding:40px 24px;text-align:center}.hero h1{margin:0 0 8px;font-size:clamp(1.8rem,5vw,3rem)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.card{background:#fff;border-radius:var(--r);box-shadow:0 4px 14px #0001;padding:14px;transition:.2s}.card:hover{transform:translateY(-3px)}
+.img{height:130px;border-radius:12px;background:var(--p2);display:flex;align-items:center;justify-content:center;font-size:3.5rem;overflow:hidden}.img img{width:100%;height:100%;object-fit:cover}
+.btn{background:var(--p);color:#fff;border:0;border-radius:99px;padding:10px 18px;font-weight:700;cursor:pointer;transition:.2s}.btn:hover{filter:brightness(1.1)}.btn.s{background:var(--p2);color:var(--p)}.btn.big{font-size:1.05rem;padding:14px 26px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #e5d5c8;border-radius:10px;font:inherit;margin:4px 0 10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.chip{padding:6px 14px;border-radius:99px;background:#fff;border:1px solid #eadbcf;cursor:pointer}.chip.on{background:var(--p);color:#fff}
+.old{text-decoration:line-through;opacity:.5;font-size:.85rem}.price{font-weight:800;color:var(--p)}.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1e6dc}
+.qty{display:inline-flex;align-items:center;gap:6px}.qty button{width:28px;height:28px;border-radius:50%;border:0;background:var(--p2);color:var(--p);font-weight:800;cursor:pointer}
+.box{background:#fff;border-radius:var(--r);padding:18px;box-shadow:0 4px 14px #0001;margin:12px 0}.tot{font-size:1.3rem;font-weight:800}
+.tag{padding:3px 10px;border-radius:99px;background:var(--p2);color:var(--p);font-size:.8rem}.err{color:#c92a2a;font-weight:600}.good{color:var(--ok)}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 18px;border-radius:99px;display:none;z-index:9}
+footer{text-align:center;padding:30px;opacity:.7}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #f1e6dc;text-align:left;font-size:.9rem}
+</style></head><body>
+<nav><span class="logo" onclick="go('')">🧁 Docesif</span><button id="menu" onclick="links.classList.toggle('open')">☰</button>
+<div id="links"></div></nav><main id="app"></main><div id="toast"></div>
+<footer>Docesif · Rosário, Bacabeira e Santa Rita - MA · Feito com carinho 🍰</footer>
+<script>
+const $=s=>document.querySelector(s),R=n=>'R$ '+Number(n).toFixed(2).replace('.',','),E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let S={token:localStorage.tk||'',user:null,cat:null,cart:JSON.parse(localStorage.cart||'[]'),zone:'',filter:'Todos'};
+const save=()=>localStorage.cart=JSON.stringify(S.cart);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2500)};
+async function api(p,m='GET',b){const r=await fetch('/api/'+p,{method:m,headers:{'Content-Type':'application/json',Authorization:'Bearer '+S.token},body:b?JSON.stringify(b):undefined});const d=await r.json();if(!r.ok)throw Object.assign(new Error(d.error),{code:r.status});return d}
+const go=h=>{location.hash='#/'+h};
+const count=()=>S.cart.reduce((a,i)=>a+i.qty,0);
+const up=p=>p.promo_price>0?p.promo_price:p.price;
+const prod=id=>S.cat.products.find(p=>p.id==id);
+function nav(){const a=S.user?.role==='admin';const L=[['','Início'],['produtos','Produtos'],['promocoes','Promoções'],['carteira','Minha Carteira'],['pedidos','Meus Pedidos'],['sacola','🛒 Sacola ('+count()+')'],['conta',S.user?'Minha Conta':'Entrar']];if(a)L.push(['admin','Admin']);
+ $('#links').innerHTML=L.map(([h,t])=>`<a onclick="go('${h}');links.classList.remove('open')" class="${location.hash==='#/'+h?'on':''}">${t}</a>`).join('')}
+function add(id,q=1){const i=S.cart.find(x=>x.id==id);i?i.qty+=q:S.cart.push({id,qty:q});save();nav();toast('Adicionado à sacola 🛒')}
+function setQ(id,d){const i=S.cart.find(x=>x.id==id);i.qty+=d;if(i.qty<1)S.cart=S.cart.filter(x=>x.id!=id);save();nav();render()}
+const pcard=p=>`<div class="card"><div class="img">${p.image?`<img src="${E(p.image)}" alt="">`:'🍫'}</div><h3>${E(p.name)}</h3><small>${E(p.description)}</small>
+<p>${p.promo_price>0?`<span class="old">${R(p.price)}</span> `:''}<span class="price">${R(up(p))}</span></p>
+<div class="qty"><button onclick="let e=this.nextElementSibling;e.textContent=Math.max(1,+e.textContent-1)">−</button><b>1</b><button onclick="let e=this.previousElementSibling;e.textContent=+e.textContent+1">+</button></div>
+<button class="btn" style="width:100%;margin-top:8px" onclick="add(${p.id},+this.previousElementSibling.querySelector('b').textContent)">Adicionar à sacola</button></div>`;
+const need=()=>{if(!S.user){go('conta');toast('Entre na sua conta');return true}};
+const pages={
+ async ''(){const f=S.cat.products.slice(0,4),pr=S.cat.products.filter(p=>p.promo_price>0);return `<div class="hero"><h1>Doces que abraçam 💖</h1><p>Bolos, brigadeiros, chocolates e kits feitos com amor.</p><button class="btn big" onclick="go('produtos')">Comprar agora</button></div>
+ <h2>Categorias</h2><div class="chips">${S.cat.categories.map(c=>`<span class="chip" onclick="S.filter='${E(c.name)}';go('produtos')">${E(c.name)}</span>`).join('')}</div>
+ <h2>Destaques</h2><div class="grid">${f.map(pcard).join('')}</div><h2>🔥 Promoções</h2><div class="grid">${pr.map(pcard).join('')||'<p>Em breve!</p>'}</div>`},
+ async produtos(){const c=S.cat.categories.find(c=>c.name===S.filter);let l=S.cat.products;if(S.filter==='Promoções')l=l.filter(p=>p.promo_price>0);else if(c)l=l.filter(p=>p.category_id==c.id);
+  return `<h2>Produtos</h2><div class="chips">${['Todos',...S.cat.categories.map(c=>c.name)].map(n=>`<span class="chip ${n===S.filter?'on':''}" onclick="S.filter='${E(n)}';render()">${E(n)}</span>`).join('')}</div><div class="grid">${l.map(pcard).join('')||'<p>Nada por aqui.</p>'}</div>`},
+ async promocoes(){return `<h2>🔥 Promoções</h2><div class="grid">${S.cat.products.filter(p=>p.promo_price>0).map(pcard).join('')||'<p>Sem promoções agora.</p>'}</div>`},
+ async sacola(){if(!S.cart.length)return `<h2>Sua sacola</h2><p>Está vazia. <a href="#/produtos">Ver produtos</a></p>`;let t=0;
+  return `<h2>Sua sacola (${count()} itens)</h2><div class="box">${S.cart.map(i=>{const p=prod(i.id);if(!p)return'';const s=up(p)*i.qty;t+=s;return `<div class="row"><div><b>${E(p.name)}</b><br><small>${R(up(p))} un.</small></div><div class="qty"><button onclick="setQ(${i.id},-1)">−</button><b>${i.qty}</b><button onclick="setQ(${i.id},1)">+</button></div><b>${R(s)}</b><button class="btn s" onclick="S.cart=S.cart.filter(x=>x.id!=${i.id});save();nav();render()">✕</button></div>`}).join('')}
+  <p class="tot">Subtotal: ${R(t)}</p><button class="btn big" onclick="go('checkout')">Ver total da compra</button></div>`},
+ async checkout(){if(need())return'';if(!S.cart.length)return go('sacola');const zs=S.cat.zones,z=S.zone||S.user.zone_id||'';let q=null,w=await api('wallet');
+  if(z)try{q=await api('quote','POST',{items:S.cart,zone_id:z})}catch(e){}
+  return `<h2>Resumo e pagamento</h2><div class="box"><label>Área de entrega</label><select onchange="S.zone=this.value;render()"><option value="">Selecione…</option>${zs.map(x=>`<option value="${x.id}" ${x.id==z?'selected':''}>${E(x.name)} — ${R(x.fee)}</option>`).join('')}</select>
+  <label>Endereço</label><textarea id="addr" rows="2">${E(S.user.address||'')}</textarea>
+  ${q?q.lines.map(l=>`<div class="row"><span>${E(l.name)} — ${l.qty}x ${R(l.unit_price)}</span><b>${R(l.subtotal)}</b></div>`).join('')+`<p>Subtotal: ${R(q.subtotal)}<br>Frete: ${R(q.shipping)}<br>${q.discount?`Descontos de promoção já aplicados: ${R(q.discount)}<br>`:''}</p><p class="tot">TOTAL: ${R(q.total)}</p>`:'<p>Escolha a área de entrega para calcular o frete.</p>'}</div>
+  <div class="box"><label>Forma de pagamento</label><select id="pay"><option value="carteira">Carteira (saldo ${R(w.balance)})</option><option value="pix">PIX</option><option value="credito">Cartão de crédito</option><option value="debito">Cartão de débito</option></select>
+  <p id="msg" class="err"></p><button class="btn big" onclick="finish(${q?q.total:0},${w.balance})">Finalizar pedido</button></div>`},
+ async confirmacao(){const o=S.last;if(!o)return go('pedidos');return `<div class="box"><h2 class="good">Pedido realizado com sucesso! 🎉</h2><p>Pedido <b>#${o.order_id}</b> · ${new Date().toLocaleString('pt-BR')}</p>${o.lines.map(l=>`<div class="row"><span>${E(l.name)} ${l.qty}x</span><b>${R(l.subtotal)}</b></div>`).join('')}<p class="tot">Total: ${R(o.total)}</p><p>Pagamento: Carteira · Status: <span class="tag">Pedido recebido</span></p><button class="btn" onclick="go('pedidos')">Acompanhar pedido</button></div>`},
+ async carteira(){if(need())return'';const w=await api('wallet');return `<h2>Minha Carteira</h2><div class="box"><small>Saldo disponível</small><div class="tot">${R(w.balance)}</div><small>Créditos são adicionados pela loja após confirmação de pagamento.</small></div><div class="box"><h3>Movimentações</h3>${w.tx.map(t=>`<div class="row"><span>${E(t.description)}<br><small>${new Date(t.created+'Z').toLocaleString('pt-BR')}</small></span><b class="${t.amount<0?'err':'good'}">${t.amount<0?'−':'+'} ${R(Math.abs(t.amount))}</b></div>`).join('')||'<p>Nenhuma movimentação.</p>'}</div>`},
+ async pedidos(){if(need())return'';const os=await api('orders');return `<h2>Meus Pedidos</h2>${os.map(o=>`<div class="box"><b>#${o.id}</b> <span class="tag">${E(o.status)}</span> · ${new Date(o.created+'Z').toLocaleString('pt-BR')}<br>${o.items.map(i=>`${E(i.name)} (${i.qty}x)`).join(', ')}<br>Pagamento: ${E(o.payment)} · <b>${R(o.total)}</b></div>`).join('')||'<p>Você ainda não fez pedidos.</p>'}`},
+ async conta(){if(!S.user)return `<div class="box" style="max-width:420px;margin:auto"><h2>Entrar / Criar conta</h2><input id="n" placeholder="Nome (só para criar conta)"><input id="e" type="email" placeholder="E-mail"><input id="pw" type="password" placeholder="Senha (mín. 6)"><p id="msg" class="err"></p><button class="btn" onclick="auth('login')">Entrar</button> <button class="btn s" onclick="auth('register')">Criar conta</button></div>`;
+  const u=S.user;return `<h2>Minha Conta</h2><div class="box"><label>Nome</label><input id="un" value="${E(u.name)}"><label>Telefone</label><input id="up" value="${E(u.phone||'')}"><label>Endereço de entrega</label><textarea id="ua">${E(u.address||'')}</textarea><label>Área padrão</label><select id="uz"><option value="">—</option>${S.cat.zones.map(z=>`<option value="${z.id}" ${z.id==u.zone_id?'selected':''}>${E(z.name)}</option>`).join('')}</select>
+  <button class="btn" onclick="saveMe()">Salvar dados</button> <button class="btn s" onclick="go('pedidos')">Meus pedidos</button> <button class="btn s" onclick="go('carteira')">Minha carteira</button> <button class="btn s" onclick="logout()">Sair</button></div>`},
+ async admin(){if(S.user?.role!=='admin')return'<p class="err">Acesso restrito.</p>';const [s,os,us,ps]=await Promise.all([api('admin/summary'),api('admin/orders'),api('admin/users'),api('admin/products')]);
+  const ST=['Pedido recebido','Em preparação','Saiu para entrega','Entregue','Cancelado'];
+  return `<h2>Painel administrativo</h2><div class="grid"><div class="card">Vendas hoje<div class="tot">${R(s.day.t)}</div></div><div class="card">Vendas no mês<div class="tot">${R(s.month.t)}</div></div><div class="card">Pedidos pendentes<div class="tot">${s.pending}</div></div><div class="card">Produtos<div class="tot">${s.products}</div></div><div class="card">Total vendido<div class="tot">${R(s.all.t)}</div></div></div>
+  <div class="box"><h3>Pedidos</h3><table>${os.map(o=>`<tr><td>#${o.id}</td><td>${E(o.customer)}</td><td>${R(o.total)}</td><td><select onchange="setSt(${o.id},this.value)">${ST.map(x=>`<option ${x===o.status?'selected':''}>${x}</option>`).join('')}</select></td></tr>`).join('')}</table></div>
+  <div class="box"><h3>Produtos</h3><table>${ps.map(p=>`<tr><td>${E(p.name)}${p.active?'':' (inativo)'}</td><td><input id="pr${p.id}" value="${p.price}" style="width:80px"></td><td><input id="pp${p.id}" placeholder="promo" value="${p.promo_price||''}" style="width:80px"></td><td><button class="btn s" onclick="updP(${p.id})">Salvar</button><button class="btn s" onclick="api('admin/products/${p.id}','DELETE').then(render)">Excluir</button></td></tr>`).join('')}</table>
+  <h4>Novo produto</h4><input id="np" placeholder="Nome"><input id="nd" placeholder="Descrição"><input id="npr" placeholder="Preço" type="number" step="0.01"><input id="ni" placeholder="URL da imagem"><select id="nc">${S.cat.categories.map(c=>`<option value="${c.id}">${E(c.name)}</option>`).join('')}</select><button class="btn" onclick="newP()">Cadastrar</button>
+  <h4>Categoria</h4><input id="ncat" placeholder="Nova categoria"><button class="btn s" onclick="api('admin/categories','POST',{name:$('#ncat').value}).then(reload)">Criar</button></div>
+  <div class="box"><h3>Frete</h3>${S.cat.zones.map(z=>`<div class="row">${E(z.name)} <span><input id="zf${z.id}" value="${z.fee}" style="width:80px"><button class="btn s" onclick="api('admin/zones/${z.id}','PUT',{name:'${E(z.name)}',fee:$('#zf${z.id}').value}).then(reload)">Salvar</button><button class="btn s" onclick="api('admin/zones/${z.id}','DELETE').then(reload)">✕</button></span></div>`).join('')}<input id="zn" placeholder="Nova área"><input id="zv" placeholder="Valor" type="number"><button class="btn" onclick="api('admin/zones','POST',{name:$('#zn').value,fee:$('#zv').value}).then(reload)">Adicionar área</button></div>
+  <div class="box"><h3>Clientes</h3><table>${us.map(u=>`<tr><td>${E(u.name)}</td><td>${E(u.email)}</td><td>${R(u.balance)}</td><td><button class="btn s" onclick="credit(${u.id})">+ Crédito</button></td></tr>`).join('')}</table></div>`}
+};
+const reload=async()=>{S.cat=await api('catalog');render()};
+async function auth(k){try{const d=await api(k,'POST',{name:$('#n').value,email:$('#e').value,password:$('#pw').value});S.token=localStorage.tk=d.token;S.user=d.user;go('');nav()}catch(e){$('#msg').textContent=e.message}}
+function logout(){localStorage.removeItem('tk');S.token='';S.user=null;nav();go('')}
+async function saveMe(){const d=await api('me','PUT',{name:$('#un').value,phone:$('#up').value,address:$('#ua').value,zone_id:$('#uz').value});S.user=d.user;toast('Dados salvos')}
+async function finish(total,bal){const m=$('#msg'),p=$('#pay').value;m.textContent='';if(!S.zone&&!S.user.zone_id)return m.textContent='Selecione a área de entrega.';
+ if(p==='carteira'&&bal<total)return m.textContent='Saldo insuficiente para realizar esta compra.';
+ try{S.last=await api('orders','POST',{items:S.cart,zone_id:S.zone||S.user.zone_id,address:$('#addr').value,payment:p});S.cart=[];save();nav();go('confirmacao')}catch(e){m.textContent=e.message}}
+const setSt=(id,status)=>api('admin/orders/'+id,'PUT',{status}).then(()=>toast('Status atualizado'));
+const updP=async id=>{const p=(await api('admin/products')).find(x=>x.id==id);await api('admin/products/'+id,'PUT',{...p,price:$('#pr'+id).value,promo_price:$('#pp'+id).value});toast('Salvo');reload()};
+const newP=()=>api('admin/products','POST',{name:$('#np').value,description:$('#nd').value,price:$('#npr').value,image:$('#ni').value,category_id:$('#nc').value}).then(reload);
+const credit=id=>{const v=prompt('Valor do crédito (R$):');if(v)api('admin/credit','POST',{user_id:id,amount:v}).then(()=>{toast('Crédito adicionado');render()})};
+async function render(){nav();const h=location.hash.replace('#/','');try{$('#app').innerHTML=await(pages[h]||pages[''])()}catch(e){if(e.code===401){logout()}else $('#app').innerHTML=`<p class="err">${E(e.message)}</p>`}}
+(async()=>{S.cat=await api('catalog');if(S.token)try{S.user=(await api('me')).user}catch{S.token=''}addEventListener('hashchange',render);render()})();
+</script></body></html>
